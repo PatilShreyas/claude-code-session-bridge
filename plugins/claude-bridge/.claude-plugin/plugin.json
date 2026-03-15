@@ -1,0 +1,9 @@
+{
+  "name": "claude-bridge",
+  "version": "0.1.0",
+  "description": "Peer-to-peer communication between Claude Code sessions on the same machine",
+  "author": {
+    "name": "Shreyas Patil"
+  },
+  "keywords": ["bridge", "multi-session", "peer-to-peer", "collaboration"]
+}

@@ -1,0 +1,62 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Run tests
+        working-directory: plugins/claude-bridge
+        run: |
+          PASS_TOTAL=0
+          FAIL_TOTAL=0
+          FAILED_TESTS=""
+
+          for t in tests/test-*.sh; do
+            [ "$(basename "$t")" = "test-helpers.sh" ] && continue
+            echo "=== $(basename $t) ==="
+            OUTPUT=$(bash "$t" 2>&1)
+            echo "$OUTPUT"
+
+            # Extract pass/fail counts
+            PASS=$(echo "$OUTPUT" | grep -oE '[0-9]+ passed' | grep -oE '[0-9]+' || echo 0)
+            FAIL=$(echo "$OUTPUT" | grep -oE '[0-9]+ failed' | grep -oE '[0-9]+' || echo 0)
+            PASS_TOTAL=$((PASS_TOTAL + PASS))
+            FAIL_TOTAL=$((FAIL_TOTAL + FAIL))
+
+            if [ "$FAIL" -gt 0 ]; then
+              FAILED_TESTS="$FAILED_TESTS $(basename $t)"
+            fi
+            echo
+          done
+
+          echo "================================"
+          echo "Total: $PASS_TOTAL passed, $FAIL_TOTAL failed"
+          echo "================================"
+
+          if [ "$FAIL_TOTAL" -gt 0 ]; then
+            echo "Failed tests:$FAILED_TESTS"
+            exit 1
+          fi
+
+  validate-plugin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Validate plugin
+        run: claude plugin validate plugins/claude-bridge

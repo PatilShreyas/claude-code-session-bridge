@@ -1,0 +1,20 @@
+{
+  "name": "claude-bridge",
+  "description": "Peer-to-peer communication between Claude Code sessions on the same machine",
+  "owner": {
+    "name": "Shreyas Patil"
+  },
+  "plugins": [
+    {
+      "name": "claude-bridge",
+      "description": "Peer-to-peer communication between Claude Code sessions on the same machine",
+      "version": "0.1.0",
+      "author": {
+        "name": "Shreyas Patil"
+      },
+      "source": "./plugins/claude-bridge",
+      "category": "productivity",
+      "keywords": ["bridge", "multi-session", "peer-to-peer", "collaboration"]
+    }
+  ]
+}
