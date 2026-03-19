@@ -9,7 +9,7 @@ CREATE_PROJ="$PLUGIN_DIR/scripts/project-create.sh"
 CONV_CREATE="$PLUGIN_DIR/scripts/conversation-create.sh"
 
 TEST_TMPDIR=$(mktemp -d)
-trap 'rm -rf "$TEST_TMPDIR"' EXIT
+trap 'rm -rf "$TEST_TMPDIR"; kill $(jobs -p) 2>/dev/null || true' EXIT
 
 BRIDGE_DIR="$TEST_TMPDIR/bridge"
 

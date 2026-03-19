@@ -90,4 +90,13 @@ if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
   echo "BRIDGE_SESSION_ID=$SESSION_ID" >> "$CLAUDE_ENV_FILE"
 fi
 
+# Start inbox watcher in background
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+WATCHER_SCRIPT="$SCRIPT_DIR/inbox-watcher.sh"
+if [ -f "$WATCHER_SCRIPT" ]; then
+  BRIDGE_DIR="$BRIDGE_DIR" bash "$WATCHER_SCRIPT" "$SESSION_ID" "$PROJECT_NAME" >/dev/null 2>&1 &
+  echo $! > "$SESSION_DIR/watcher.pid"
+  disown
+fi
+
 echo -n "$SESSION_ID"

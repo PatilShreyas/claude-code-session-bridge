@@ -10,7 +10,7 @@ REGISTER="$PLUGIN_DIR/scripts/register.sh"
 SEND_MSG="$PLUGIN_DIR/scripts/send-message.sh"
 
 TEST_TMPDIR=$(mktemp -d)
-trap 'rm -rf "$TEST_TMPDIR"' EXIT
+trap 'rm -rf "$TEST_TMPDIR"; kill $(jobs -p) 2>/dev/null || true' EXIT
 
 BRIDGE_DIR="$TEST_TMPDIR/bridge"
 PROJECT_A="$TEST_TMPDIR/project-a"
