@@ -10,7 +10,16 @@ ORIG_MSG_ID="${2:?Usage: bridge-receive.sh <session-id> <message-id> [timeout]}"
 TIMEOUT="${3:-60}"
 
 BRIDGE_DIR="${BRIDGE_DIR:-$HOME/.claude/session-bridge}"
-INBOX="$BRIDGE_DIR/sessions/$SESSION_ID/inbox"
+
+# Resolve inbox: project-scoped first, legacy fallback
+INBOX=""
+for PROJ_MANIFEST in "$BRIDGE_DIR"/projects/*/sessions/"$SESSION_ID"/manifest.json; do
+  [ -f "$PROJ_MANIFEST" ] || continue
+  PROJ_ID=$(jq -r '.projectId' "$PROJ_MANIFEST")
+  INBOX="$BRIDGE_DIR/projects/$PROJ_ID/sessions/$SESSION_ID/inbox"
+  break
+done
+[ -z "$INBOX" ] && INBOX="$BRIDGE_DIR/sessions/$SESSION_ID/inbox"
 
 ELAPSED=0
 INTERVAL=3

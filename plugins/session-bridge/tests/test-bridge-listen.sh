@@ -108,4 +108,24 @@ BRIDGE_DIR="$BRIDGE_DIR" BRIDGE_SESSION_ID="$SESSION_A" bash "$SEND_MSG" "$SESSI
 OUTPUT=$(BRIDGE_DIR="$BRIDGE_DIR" bash "$LISTEN" "$SESSION_B" 5)
 assert_contains "inReplyTo in output" "IN_REPLY_TO=$ORIG_ID" "$OUTPUT"
 
+echo ""
+echo "--- inotifywait/project-scoped tests ---"
+
+# Test I1: Works with project-scoped inbox
+V2_TMPDIR=$(mktemp -d)
+V2_BRIDGE="$V2_TMPDIR/bridge"
+V2_PROJ_A="$V2_TMPDIR/proj-a"
+V2_PROJ_B="$V2_TMPDIR/proj-b"
+mkdir -p "$V2_PROJ_A" "$V2_PROJ_B"
+BRIDGE_DIR="$V2_BRIDGE" bash "$PLUGIN_DIR/scripts/project-create.sh" "listen-proj" > /dev/null
+V2_SID_A=$(BRIDGE_DIR="$V2_BRIDGE" PROJECT_DIR="$V2_PROJ_A" bash "$PLUGIN_DIR/scripts/project-join.sh" "listen-proj")
+V2_SID_B=$(BRIDGE_DIR="$V2_BRIDGE" PROJECT_DIR="$V2_PROJ_B" bash "$PLUGIN_DIR/scripts/project-join.sh" "listen-proj")
+
+# Send a message, then listen — should find it immediately
+BRIDGE_DIR="$V2_BRIDGE" BRIDGE_SESSION_ID="$V2_SID_A" bash "$PLUGIN_DIR/scripts/send-message.sh" "$V2_SID_B" ping "hello" > /dev/null
+OUTPUT=$(BRIDGE_DIR="$V2_BRIDGE" bash "$LISTEN" "$V2_SID_B" 5 2>/dev/null || true)
+assert_contains "finds project-scoped message" "TYPE=ping" "$OUTPUT"
+
+rm -rf "$V2_TMPDIR"
+
 print_results
