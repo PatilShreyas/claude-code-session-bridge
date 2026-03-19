@@ -102,10 +102,10 @@ while true; do
       else
         REMAINING="$INTERVAL"
       fi
-      # Capture exit code BEFORE any || handler
-      # Exit code 0 = file created, 2 = timeout
-      inotifywait -t "$REMAINING" -e create "$INBOX" >/dev/null 2>&1
-      WATCH_RC=$?
+      # Capture exit code — disable set -e for this command since
+      # inotifywait returns 2 on timeout which would kill the script
+      WATCH_RC=0
+      inotifywait -t "$REMAINING" -e create "$INBOX" >/dev/null 2>&1 || WATCH_RC=$?
       if [ "$WATCH_RC" -eq 2 ]; then
         # Timeout — update elapsed and let the loop re-check
         ELAPSED=$((ELAPSED + REMAINING))
