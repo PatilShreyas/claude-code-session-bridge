@@ -100,7 +100,9 @@ Terminal 3 (framework):       /bridge project join plextura --role specialist --
 Terminal 4 (frontend):        /bridge project join plextura --role specialist --specialty "React, UI components"
 ```
 
-Put specialists in standby (`/bridge standby`), then talk to the orchestrator:
+Put specialists in standby (`/bridge standby`). **First-time setup only** — roles and specialties are persisted. Next time you open Claude in the same directory, the session auto-joins the project with its saved role. No commands needed.
+
+Then talk to the orchestrator:
 
 ```
 > Here are today's issues: #123 (auth token regression), #124 (framework logging),
@@ -251,9 +253,22 @@ Sessions are grouped under named projects:
   sessions/                     # Legacy flat structure (ad-hoc mode)
 ```
 
-### Role Persistence
+### Auto-Join on Session Start
 
-When you join a project with `--role orchestrator`, the role is saved to `.claude/bridge-role` in your project directory. Next time you join the same project, the role is automatically applied — no flags needed.
+When you join a project, your role, specialty, name, and project are saved to `.claude/bridge-role` in your project directory. The next time you open Claude Code in that directory, a `SessionStart` hook automatically rejoins the project with your saved config. No commands needed — just open Claude and you're connected.
+
+First time:
+```
+/bridge project join plextura --role specialist --specialty "auth, JWT"
+```
+
+Every time after:
+```
+# Just open claude — auto-joined on startup
+claude
+```
+
+The agent sees a system message confirming the auto-join: project name, role, specialty, and how many peers are online.
 
 ---
 

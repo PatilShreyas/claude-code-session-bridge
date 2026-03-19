@@ -58,6 +58,7 @@ We are implementing bidirectional, project-scoped, autonomous multi-session orch
 - **Projects** group sessions (`~/.claude/session-bridge/projects/<name>/`)
 - **Conversations** thread messages with state tracking (open/waiting/resolved)
 - **Hook-driven async**: `UserPromptSubmit` + rate-limited `PostToolUse` replace blocking listen
+- **Auto-join**: `SessionStart` hook reads `.claude/bridge-role` and rejoins project automatically
 - **Standby mode**: agent runs `bridge-listen.sh` loop when idle (not at prompt)
 - **Escalation chains**: conversations link via `parentConversation`
 - **Human-in-the-loop**: `human-input-needed` messages with `proposedDefault` and `blocksWork`

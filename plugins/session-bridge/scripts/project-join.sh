@@ -73,8 +73,8 @@ if [ -f "$BRIDGE_SESSION_FILE" ]; then
       mv "$TMP" "$EXISTING_DIR/manifest.json"
       # Persist role for future joins
       mkdir -p "$PROJECT_DIR/.claude"
-      jq -n --arg role "$ROLE" --arg spec "$SPECIALTY" --arg name "$SESSION_NAME" \
-        '{role: $role, specialty: $spec, name: $name}' > "$BRIDGE_ROLE_FILE"
+      jq -n --arg role "$ROLE" --arg spec "$SPECIALTY" --arg name "$SESSION_NAME" --arg project "$PROJECT_NAME" \
+        '{role: $role, specialty: $spec, name: $name, project: $project}' > "$BRIDGE_ROLE_FILE"
       echo -n "$EXISTING_ID"
       exit 0
     fi
@@ -112,8 +112,8 @@ mv "$TMP" "$SESSION_DIR/manifest.json"
 # Write bridge-session pointer and persist role
 mkdir -p "$PROJECT_DIR/.claude"
 echo -n "$SESSION_ID" > "$BRIDGE_SESSION_FILE"
-jq -n --arg role "$ROLE" --arg spec "$SPECIALTY" --arg name "$SESSION_NAME" \
-  '{role: $role, specialty: $spec, name: $name}' > "$BRIDGE_ROLE_FILE"
+jq -n --arg role "$ROLE" --arg spec "$SPECIALTY" --arg name "$SESSION_NAME" --arg project "$PROJECT_NAME" \
+  '{role: $role, specialty: $spec, name: $name, project: $project}' > "$BRIDGE_ROLE_FILE"
 
 # Set BRIDGE_SESSION_ID in env file if available
 if [ -n "${CLAUDE_ENV_FILE:-}" ]; then
