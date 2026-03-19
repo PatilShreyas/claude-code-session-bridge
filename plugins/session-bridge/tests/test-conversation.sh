@@ -53,4 +53,36 @@ else
   echo "  PASS: errors on nonexistent project"; PASS=$((PASS + 1))
 fi
 
+echo ""
+echo "--- conversation-update tests ---"
+
+CONV_UPDATE="$PLUGIN_DIR/scripts/conversation-update.sh"
+
+# Test U1: Update status to waiting
+BRIDGE_DIR="$BRIDGE_DIR" bash "$CONV_UPDATE" "test-proj" "$CONV_ID" "waiting"
+assert_json_field "status changed to waiting" "$CONV_FILE" '.status' "waiting"
+
+# Test U2: Update status back to open
+BRIDGE_DIR="$BRIDGE_DIR" bash "$CONV_UPDATE" "test-proj" "$CONV_ID" "open"
+assert_json_field "status changed to open" "$CONV_FILE" '.status' "open"
+
+# Test U3: Resolve with resolution text
+BRIDGE_DIR="$BRIDGE_DIR" bash "$CONV_UPDATE" "test-proj" "$CONV_ID" "resolved" --resolution "Fixed JWT validation"
+assert_json_field "status is resolved" "$CONV_FILE" '.status' "resolved"
+assert_json_field "resolution set" "$CONV_FILE" '.resolution' "Fixed JWT validation"
+RESOLVED_AT=$(jq -r '.resolvedAt' "$CONV_FILE")
+assert_eq "resolvedAt not null" "true" "$([ "$RESOLVED_AT" != "null" ] && echo true || echo false)"
+
+# Test U4: Resolve without resolution text
+BRIDGE_DIR="$BRIDGE_DIR" bash "$CONV_UPDATE" "test-proj" "$CHILD_ID" "resolved"
+assert_json_field "child resolved" "$CHILD_FILE" '.status' "resolved"
+assert_json_field "child resolvedAt set" "$CHILD_FILE" '.resolvedAt | length > 0' "true"
+
+# Test U5: Fails on nonexistent conversation
+if BRIDGE_DIR="$BRIDGE_DIR" bash "$CONV_UPDATE" "test-proj" "conv-nonexistent" "open" 2>/dev/null; then
+  echo "  FAIL: should error on nonexistent conversation"; FAIL=$((FAIL + 1))
+else
+  echo "  PASS: errors on nonexistent conversation"; PASS=$((PASS + 1))
+fi
+
 print_results
