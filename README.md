@@ -100,8 +100,20 @@ That's it. The Library agent responds with its **full session context** — it k
 | `/bridge peers` | List all active sessions on this machine |
 | `/bridge status` | Show session ID, connected peers, pending messages |
 | `/bridge stop` | Disconnect, notify peers, clean up |
+| `/fork [name]` | Fork this conversation into a new terminal tab with bridge auto-connect |
 
 > **Tip:** You don't always need explicit commands. Just tell your agent "ask the library about X" in natural language and it will use the bridge automatically.
+
+### Fork: parallel sessions from one conversation
+
+`/fork` opens a new terminal tab with a forked copy of your current conversation. The forked session automatically connects to the parent via the bridge — both sessions can query each other immediately.
+
+```
+> /fork experiment
+Forked into a new tab. The child session will auto-connect.
+```
+
+Use it to branch off an experiment without losing your main thread, or to parallelize work across two agents that share context. Works with Ghostty, iTerm2, and Terminal.app on macOS.
 
 ## How It Works
 
@@ -257,8 +269,10 @@ plugins/session-bridge/
 ├── hooks/
 │   └── hooks.json               # SessionEnd cleanup, PreCompact preservation
 ├── skills/
-│   └── bridge-awareness/
-│       └── SKILL.md             # Teaches agent the bridge protocol
+│   ├── bridge-awareness/
+│   │   └── SKILL.md             # Teaches agent the bridge protocol
+│   └── fork/
+│       └── SKILL.md             # /fork — parallel sessions from one conversation
 ├── scripts/
 │   ├── register.sh              # Create session directory and manifest
 │   ├── send-message.sh          # Send message to peer's inbox
