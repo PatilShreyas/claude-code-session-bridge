@@ -255,7 +255,7 @@ plugins/session-bridge/
 ├── commands/
 │   └── bridge.md                # /bridge command (all subcommands)
 ├── hooks/
-│   └── hooks.json               # SessionEnd cleanup, PreCompact preservation
+│   └── hooks.json               # SessionEnd cleanup — notifies peers on exit
 ├── skills/
 │   └── bridge-awareness/
 │       └── SKILL.md             # Teaches agent the bridge protocol
