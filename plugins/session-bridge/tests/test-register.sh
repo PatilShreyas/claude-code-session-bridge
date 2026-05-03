@@ -71,11 +71,21 @@ mkdir -p "$PROJECT_DIR2"
 SESSION_ID2=$(BRIDGE_DIR="$BRIDGE_DIR" PROJECT_DIR="$PROJECT_DIR2" CLAUDE_ENV_FILE="$ENV_FILE" bash "$REGISTER")
 assert_contains "BRIDGE_SESSION_ID in env file" "BRIDGE_SESSION_ID=$SESSION_ID2" "$(cat "$ENV_FILE")"
 
-# --- Test 6: Re-registering same project reuses session ---
+# --- Test 6: Re-registering with BRIDGE_SESSION_ID env var reuses session ---
 echo ""
-echo "Test 6: Re-registering same project reuses existing session"
-SESSION_ID_AGAIN=$(BRIDGE_DIR="$BRIDGE_DIR" PROJECT_DIR="$PROJECT_DIR" bash "$REGISTER")
-assert_eq "reused same session ID" "$SESSION_ID" "$SESSION_ID_AGAIN"
+echo "Test 6: Re-registering with BRIDGE_SESSION_ID reuses existing session"
+SESSION_ID_AGAIN=$(BRIDGE_DIR="$BRIDGE_DIR" PROJECT_DIR="$PROJECT_DIR" BRIDGE_SESSION_ID="$SESSION_ID" bash "$REGISTER")
+assert_eq "reused same session ID via env var" "$SESSION_ID" "$SESSION_ID_AGAIN"
+
+# --- Test 6b: Re-registering same project WITHOUT env var creates new session ---
+echo ""
+echo "Test 6b: Re-registering same project without env var creates new session"
+SESSION_ID_NEW=$(BRIDGE_DIR="$BRIDGE_DIR" PROJECT_DIR="$PROJECT_DIR" bash "$REGISTER")
+if [ "$SESSION_ID_NEW" != "$SESSION_ID" ]; then
+  echo "  PASS: new session created without env var (simulates second Claude session)"; PASS=$((PASS + 1))
+else
+  echo "  FAIL: reused session without env var"; FAIL=$((FAIL + 1))
+fi
 
 # --- Test 7: Stale pointer (session dir missing) creates new session ---
 echo ""
@@ -106,19 +116,34 @@ fi
 
 # --- Test 9: heartbeat updated on re-register ---
 echo ""
-echo "Test 9: Heartbeat is updated when re-registering"
+echo "Test 9: Heartbeat is updated when re-registering with env var"
 # Set old heartbeat
 NEW_SESSION_DIR="$BRIDGE_DIR/sessions/$NEW_SESSION_ID"
 TMP=$(mktemp "$NEW_SESSION_DIR/manifest.XXXXXX")
 jq '.lastHeartbeat = "2020-01-01T00:00:00Z"' "$NEW_SESSION_DIR/manifest.json" > "$TMP"
 mv "$TMP" "$NEW_SESSION_DIR/manifest.json"
-# Re-register
-BRIDGE_DIR="$BRIDGE_DIR" PROJECT_DIR="$PROJECT_DIR" bash "$REGISTER" > /dev/null
+# Re-register with BRIDGE_SESSION_ID set
+BRIDGE_DIR="$BRIDGE_DIR" PROJECT_DIR="$PROJECT_DIR" BRIDGE_SESSION_ID="$NEW_SESSION_ID" bash "$REGISTER" > /dev/null
 UPDATED_HB=$(jq -r '.lastHeartbeat' "$NEW_SESSION_DIR/manifest.json")
 if [ "$UPDATED_HB" != "2020-01-01T00:00:00Z" ]; then
   echo "  PASS: heartbeat updated on re-register"; PASS=$((PASS + 1))
 else
   echo "  FAIL: heartbeat not updated"; FAIL=$((FAIL + 1))
 fi
+
+# --- Test 10: Two sessions in same project get independent bridges ---
+echo ""
+echo "Test 10: Two sessions in same project get independent bridge IDs"
+PROJECT_SHARED="$TEST_TMPDIR/shared-project"
+mkdir -p "$PROJECT_SHARED"
+SID_1=$(BRIDGE_DIR="$BRIDGE_DIR" PROJECT_DIR="$PROJECT_SHARED" bash "$REGISTER")
+SID_2=$(BRIDGE_DIR="$BRIDGE_DIR" PROJECT_DIR="$PROJECT_SHARED" bash "$REGISTER")
+if [ "$SID_1" != "$SID_2" ]; then
+  echo "  PASS: two sessions in same project get different IDs"; PASS=$((PASS + 1))
+else
+  echo "  FAIL: both sessions got same ID"; FAIL=$((FAIL + 1))
+fi
+assert_dir_exists "session 1 dir exists" "$BRIDGE_DIR/sessions/$SID_1"
+assert_dir_exists "session 2 dir exists" "$BRIDGE_DIR/sessions/$SID_2"
 
 print_results

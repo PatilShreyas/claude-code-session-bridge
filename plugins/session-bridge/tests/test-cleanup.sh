@@ -35,16 +35,16 @@ echo ""
 echo "Test 1: Cleanup removes session directory"
 SESSION_A_DIR="$BRIDGE_DIR/sessions/$SESSION_A"
 assert_dir_exists "session dir exists before cleanup" "$SESSION_A_DIR"
-BRIDGE_DIR="$BRIDGE_DIR" PROJECT_DIR="$PROJECT_A" bash "$CLEANUP"
+BRIDGE_DIR="$BRIDGE_DIR" PROJECT_DIR="$PROJECT_A" BRIDGE_SESSION_ID="$SESSION_A" bash "$CLEANUP"
 if [ ! -d "$SESSION_A_DIR" ]; then
   echo "  PASS: session dir removed"; PASS=$((PASS + 1))
 else
   echo "  FAIL: session dir still exists"; FAIL=$((FAIL + 1))
 fi
 
-# --- Test 2: bridge-session pointer removed ---
+# --- Test 2: bridge-session pointer removed (file belongs to this session) ---
 echo ""
-echo "Test 2: bridge-session file removed"
+echo "Test 2: bridge-session file removed when it belongs to the exiting session"
 if [ ! -f "$PROJECT_A/.claude/bridge-session" ]; then
   echo "  PASS: bridge-session file removed"; PASS=$((PASS + 1))
 else
@@ -93,7 +93,7 @@ assert_dir_exists "stale session exists before cleanup" "$STALE_DIR"
 PROJECT_D="$TEST_TMPDIR/project-d"
 mkdir -p "$PROJECT_D"
 SESSION_D=$(BRIDGE_DIR="$BRIDGE_DIR" PROJECT_DIR="$PROJECT_D" bash "$REGISTER")
-BRIDGE_DIR="$BRIDGE_DIR" PROJECT_DIR="$PROJECT_D" bash "$CLEANUP"
+BRIDGE_DIR="$BRIDGE_DIR" PROJECT_DIR="$PROJECT_D" BRIDGE_SESSION_ID="$SESSION_D" bash "$CLEANUP"
 if [ ! -d "$STALE_DIR" ]; then
   echo "  PASS: stale session cleaned up"; PASS=$((PASS + 1))
 else
@@ -123,8 +123,28 @@ assert_dir_exists "session B still exists" "$SESSION_B_DIR"
 PROJECT_F="$TEST_TMPDIR/project-f"
 mkdir -p "$PROJECT_F"
 SESSION_F=$(BRIDGE_DIR="$BRIDGE_DIR" PROJECT_DIR="$PROJECT_F" bash "$REGISTER")
-BRIDGE_DIR="$BRIDGE_DIR" PROJECT_DIR="$PROJECT_F" bash "$CLEANUP"
+BRIDGE_DIR="$BRIDGE_DIR" PROJECT_DIR="$PROJECT_F" BRIDGE_SESSION_ID="$SESSION_F" bash "$CLEANUP"
 
 assert_dir_exists "active session B not cleaned" "$SESSION_B_DIR"
+
+# --- Test 7: Cleanup of one session doesn't delete bridge-session file owned by another ---
+echo ""
+echo "Test 7: Cleanup preserves bridge-session file owned by another session"
+PROJECT_SHARED="$TEST_TMPDIR/project-shared"
+mkdir -p "$PROJECT_SHARED"
+SID_1=$(BRIDGE_DIR="$BRIDGE_DIR" PROJECT_DIR="$PROJECT_SHARED" bash "$REGISTER")
+SID_2=$(BRIDGE_DIR="$BRIDGE_DIR" PROJECT_DIR="$PROJECT_SHARED" bash "$REGISTER")
+# File now points to SID_2 (last registered)
+assert_eq "file points to SID_2" "$SID_2" "$(cat "$PROJECT_SHARED/.claude/bridge-session")"
+# Clean up SID_1 — should NOT delete the file since it belongs to SID_2
+BRIDGE_DIR="$BRIDGE_DIR" PROJECT_DIR="$PROJECT_SHARED" BRIDGE_SESSION_ID="$SID_1" bash "$CLEANUP"
+if [ ! -d "$BRIDGE_DIR/sessions/$SID_1" ]; then
+  echo "  PASS: session 1 dir removed"; PASS=$((PASS + 1))
+else
+  echo "  FAIL: session 1 dir still exists"; FAIL=$((FAIL + 1))
+fi
+assert_file_exists "bridge-session file preserved for session 2" "$PROJECT_SHARED/.claude/bridge-session"
+assert_eq "file still points to SID_2" "$SID_2" "$(cat "$PROJECT_SHARED/.claude/bridge-session")"
+assert_dir_exists "session 2 dir untouched" "$BRIDGE_DIR/sessions/$SID_2"
 
 print_results
