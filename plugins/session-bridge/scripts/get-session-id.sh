@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# scripts/get-session-id.sh — Reliably find this project's bridge session ID.
+# scripts/get-session-id.sh — Reliably find this session's bridge session ID.
 # Works even if the agent cd'd into a subdirectory.
 #
 # Strategy:
-# 1. Try .claude/bridge-session in current directory (fast path)
-# 2. Scan all session manifests for one whose projectPath is a parent of $(pwd)
+# 1. Check BRIDGE_SESSION_ID env var (per-process, always correct)
+# 2. Try .claude/bridge-session file (convenience pointer, may belong to another session)
+# 3. Scan all session manifests for one whose projectPath is a parent of $(pwd)
 #
 # Outputs: session ID to stdout, or exits 1 if not found.
 set -euo pipefail
@@ -12,21 +13,31 @@ set -euo pipefail
 BRIDGE_DIR="${BRIDGE_DIR:-$HOME/.claude/session-bridge}"
 CURRENT_DIR="${PROJECT_DIR:-$(pwd)}"
 
-# Fast path: .claude/bridge-session in current directory
-if [ -f "$CURRENT_DIR/.claude/bridge-session" ]; then
-  cat "$CURRENT_DIR/.claude/bridge-session"
-  exit 0
+# Fast path: env var set by register.sh via CLAUDE_ENV_FILE (per-process, no collisions)
+if [ -n "${BRIDGE_SESSION_ID:-}" ]; then
+  SESSION_DIR="$BRIDGE_DIR/sessions/$BRIDGE_SESSION_ID"
+  if [ -d "$SESSION_DIR" ] && [ -f "$SESSION_DIR/manifest.json" ]; then
+    echo -n "$BRIDGE_SESSION_ID"
+    exit 0
+  fi
 fi
 
-# Fallback: scan all session manifests for one whose projectPath is a parent of current dir.
-# e.g., if we're at /projects/my-lib/src/main/kotlin and a session has
-# projectPath=/projects/my-lib, that's a match.
+# Fallback: .claude/bridge-session file (may point to a different session in the same repo)
+if [ -f "$CURRENT_DIR/.claude/bridge-session" ]; then
+  FILE_ID=$(cat "$CURRENT_DIR/.claude/bridge-session")
+  SESSION_DIR="$BRIDGE_DIR/sessions/$FILE_ID"
+  if [ -d "$SESSION_DIR" ] && [ -f "$SESSION_DIR/manifest.json" ]; then
+    echo -n "$FILE_ID"
+    exit 0
+  fi
+fi
+
+# Last resort: scan all session manifests for one whose projectPath is a parent of current dir.
 for MANIFEST in "$BRIDGE_DIR"/sessions/*/manifest.json; do
   [ -f "$MANIFEST" ] || continue
   PROJ_PATH=$(jq -r '.projectPath // ""' "$MANIFEST" 2>/dev/null)
   [ -n "$PROJ_PATH" ] || continue
 
-  # Check: is our current directory inside (or equal to) this project's path?
   case "$CURRENT_DIR" in
     "$PROJ_PATH"|"$PROJ_PATH"/*)
       jq -r '.sessionId' "$MANIFEST"
