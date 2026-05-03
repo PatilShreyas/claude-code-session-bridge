@@ -7,7 +7,11 @@ description: Activates when a bridge session is active. Teaches the agent to com
 
 You are connected to other Claude Code sessions via the Claude Bridge plugin. This skill defines how you communicate with peer agents.
 
-**Getting your session ID:** Always use `bash "${CLAUDE_PLUGIN_ROOT}/scripts/get-session-id.sh"` to get your session ID. This works even if you've cd'd into a subdirectory. In listen mode, use `TO_ID` from the message output instead (even more reliable).
+**Getting your session ID:** Always register first to ensure you have your own bridge identity:
+```bash
+MY_SESSION=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/register.sh")
+```
+This is idempotent — if `BRIDGE_SESSION_ID` env var is set (from a prior registration), it reuses that session. In listen mode, use `TO_ID` from the message output instead (even more reliable).
 
 ## Querying Peers
 
@@ -15,7 +19,7 @@ When the user asks you to communicate with a peer — whether via `/bridge ask`,
 
 1. Get your session ID. If no bridge exists yet, auto-register first:
    ```bash
-   MY_SESSION=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/get-session-id.sh" 2>/dev/null) || MY_SESSION=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/register.sh")
+   MY_SESSION=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/register.sh")
    ```
    Then find connected peers:
    ```bash
@@ -100,7 +104,7 @@ BRIDGE_SESSION_ID=<TO_ID> bash "${CLAUDE_PLUGIN_ROOT}/scripts/send-message.sh" <
 - **In listen mode, NEVER break the loop.** Respond, then immediately listen again.
 - **Always use `send-message.sh`** — never write message JSON files directly.
 - **In listen mode, use `TO_ID`** from the message output as BRIDGE_SESSION_ID.
-- **Outside listen mode, use `get-session-id.sh`** to get your session ID reliably.
+- **Outside listen mode, use `register.sh`** to get your session ID (idempotent — reuses existing via env var).
 - **Never use `$(cat .claude/bridge-session)` directly** — it's a relative path that breaks when the working directory changes.
 - **Include real code in responses** — read actual files and paste relevant sections. Don't just describe changes in prose.
 - **Route to the right peer** when connected to multiple. Use project names to decide relevance.

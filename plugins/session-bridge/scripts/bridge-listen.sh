@@ -15,11 +15,15 @@ if [ -n "${1:-}" ] && [ "${1:-}" != "0" ] && ! echo "$1" | grep -qE '^[0-9]+$'; 
   SESSION_ID="$1"
   TIMEOUT="${2:-0}"
 else
-  # No session ID given, try to find it
-  SESSION_ID=$(bash "$SCRIPT_DIR/get-session-id.sh" 2>/dev/null) || {
-    echo "Error: No bridge session found. Run /bridge start first." >&2
-    exit 1
-  }
+  # No session ID given — prefer BRIDGE_SESSION_ID env var, then fall back to get-session-id.sh
+  if [ -n "${BRIDGE_SESSION_ID:-}" ]; then
+    SESSION_ID="$BRIDGE_SESSION_ID"
+  else
+    SESSION_ID=$(bash "$SCRIPT_DIR/get-session-id.sh" 2>/dev/null) || {
+      echo "Error: No bridge session found. Run /bridge start first." >&2
+      exit 1
+    }
+  fi
   TIMEOUT="${1:-0}"
 fi
 

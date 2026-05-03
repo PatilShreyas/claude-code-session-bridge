@@ -41,23 +41,21 @@ Register this session as a bridge peer.
 
 ### `connect <session-id>`
 
-Connect to a peer session. Auto-starts this session's bridge if not already active.
+Connect to a peer session. Always ensures this session has its own bridge first.
 
-1. Extract the session ID from the argument.
-2. Check if this session has a bridge:
-   ```bash
-   bash "${CLAUDE_PLUGIN_ROOT}/scripts/get-session-id.sh"
-   ```
-   If it exits with code 1 (not found), auto-start the bridge first:
+1. Extract the target session ID from the argument.
+2. **Always register first** to guarantee this session has its own unique bridge identity.
+   `register.sh` is idempotent — if `BRIDGE_SESSION_ID` env var is already set (from a
+   prior `/bridge start` in this process), it reuses that session. Otherwise it creates a new one:
    ```bash
    bash "${CLAUDE_PLUGIN_ROOT}/scripts/register.sh"
    ```
-   Capture the session ID from stdout and note it for the user.
-3. Then connect to the peer:
+   Capture the returned session ID — this is YOUR session's ID.
+3. Then connect to the peer using YOUR session ID from step 2:
    ```bash
-   BRIDGE_SESSION_ID=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/get-session-id.sh") bash "${CLAUDE_PLUGIN_ROOT}/scripts/connect-peer.sh" "<session-id>"
+   BRIDGE_SESSION_ID=<your-session-id-from-step-2> bash "${CLAUDE_PLUGIN_ROOT}/scripts/connect-peer.sh" "<target-session-id>"
    ```
-4. If successful, display the peer's project name and path. If you auto-started in step 2, also show this session's ID.
+4. If successful, display the peer's project name and path, and show this session's ID.
 5. If it fails (peer not found), suggest `/bridge peers` to see available sessions.
 6. Tell the user: "Connected! Use `/bridge listen` to start answering peer queries, or `/bridge ask <question>` to ask them something."
 
@@ -67,15 +65,13 @@ Enter listening mode — continuously wait for peer messages and respond to them
 
 **This is a loop. You MUST keep listening until the user interrupts (Ctrl+C).**
 
-**Auto-start:** First, check if this session has a bridge:
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/scripts/get-session-id.sh"
-```
-If it exits with code 1, auto-start:
+**Auto-start:** Always register first to ensure this session has its own bridge:
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/register.sh"
 ```
-Display: "Bridge auto-started! Session ID: <id>". Then proceed to the loop.
+Capture the returned session ID. If this session was already registered (via `BRIDGE_SESSION_ID`
+env var), `register.sh` reuses it. Otherwise it creates a new one.
+Display: "Bridge active! Session ID: <id>". Then proceed to the loop.
 
 Store the session ID in a variable (e.g., `MY_SESSION`) for use throughout the loop.
 
@@ -114,11 +110,11 @@ The loop:
 
 Send a query to a connected peer and wait for the response.
 
-1. Get session ID:
+1. Get session ID — register first to ensure this session has its own bridge:
    ```bash
-   MY_SESSION=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/get-session-id.sh")
+   MY_SESSION=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/register.sh")
    ```
-   If it fails, tell the user to run `/bridge start` first.
+   This is idempotent — reuses the existing session if `BRIDGE_SESSION_ID` env var is set.
 2. Find connected peers:
    ```bash
    find ~/.claude/session-bridge/sessions/$MY_SESSION/inbox -name "*.json" -exec jq -r 'select(.type == "ping") | .from' {} \; 2>/dev/null | sort -u
@@ -158,7 +154,7 @@ Show current bridge state.
    ```bash
    MY_SESSION=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/get-session-id.sh")
    ```
-   If it fails, say "Bridge is not active. Run `/bridge start` to begin."
+   If it exits with code 1, say "Bridge is not active. Run `/bridge start` to begin."
 2. Display the session ID.
 3. List connected peers (from ping messages in inbox).
 4. Count pending (unread) messages in inbox.
