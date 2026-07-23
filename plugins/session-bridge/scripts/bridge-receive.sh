@@ -27,6 +27,7 @@ while [ "$ELAPSED" -lt "$TIMEOUT" ]; do
     # Found an unread response!
     CONTENT=$(jq -r '.content' "$MSG_FILE")
     FROM_PROJECT=$(jq -r '.metadata.fromProject // "unknown"' "$MSG_FILE")
+    FROM_LABEL=$(jq -r '.metadata.fromLabel // ""' "$MSG_FILE")
     MSG_TYPE=$(jq -r '.type' "$MSG_FILE")
 
     # Mark as read
@@ -34,7 +35,11 @@ while [ "$ELAPSED" -lt "$TIMEOUT" ]; do
     jq '.status = "read"' "$MSG_FILE" > "$TMP"
     mv "$TMP" "$MSG_FILE"
 
-    echo "Response from $FROM_PROJECT:"
+    if [ -n "$FROM_LABEL" ]; then
+      echo "Response from $FROM_PROJECT [$FROM_LABEL]:"
+    else
+      echo "Response from $FROM_PROJECT:"
+    fi
     echo "$CONTENT"
     exit 0
   done

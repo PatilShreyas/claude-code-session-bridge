@@ -16,6 +16,7 @@ fi
 
 PEER_NAME=$(jq -r '.projectName' "$TARGET_MANIFEST")
 PEER_PATH=$(jq -r '.projectPath' "$TARGET_MANIFEST")
+PEER_LABEL=$(jq -r '.label // ""' "$TARGET_MANIFEST")
 
 # Check for staleness (>5 min since last heartbeat)
 PEER_HB=$(jq -r '.lastHeartbeat' "$TARGET_MANIFEST")
@@ -30,4 +31,8 @@ fi
 BRIDGE_DIR="$BRIDGE_DIR" BRIDGE_SESSION_ID="$SENDER_ID" \
   bash "$SCRIPT_DIR/send-message.sh" "$TARGET_ID" ping "connected" > /dev/null
 
-echo "Connected to '$PEER_NAME' ($TARGET_ID) at $PEER_PATH"
+if [ -n "$PEER_LABEL" ]; then
+  echo "Connected to '$PEER_NAME' ($TARGET_ID) [$PEER_LABEL] at $PEER_PATH"
+else
+  echo "Connected to '$PEER_NAME' ($TARGET_ID) at $PEER_PATH"
+fi

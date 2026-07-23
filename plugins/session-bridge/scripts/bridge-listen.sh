@@ -52,6 +52,7 @@ while true; do
     MSG_TYPE=$(jq -r '.type' "$MSG_FILE")
     CONTENT=$(jq -r '.content' "$MSG_FILE")
     FROM_PROJECT=$(jq -r '.metadata.fromProject // "unknown"' "$MSG_FILE")
+    FROM_LABEL=$(jq -r '.metadata.fromLabel // ""' "$MSG_FILE")
     IN_REPLY_TO=$(jq -r '.inReplyTo // ""' "$MSG_FILE")
 
     # Skip messages FROM ourselves (echo prevention)
@@ -69,6 +70,7 @@ while true; do
     echo "FROM_ID=$FROM_ID"
     echo "TO_ID=$TO_ID"
     echo "FROM_PROJECT=$FROM_PROJECT"
+    echo "FROM_LABEL=$FROM_LABEL"
     echo "TYPE=$MSG_TYPE"
     echo "IN_REPLY_TO=$IN_REPLY_TO"
     echo "---"

@@ -4,14 +4,12 @@ set -euo pipefail
 
 BRIDGE_DIR="${BRIDGE_DIR:-$HOME/.claude/session-bridge}"
 PROJECT_DIR="${PROJECT_DIR:-$(pwd)}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-if [ -n "${BRIDGE_SESSION_ID:-}" ]; then
-  SESSION_ID="$BRIDGE_SESSION_ID"
-elif [ -f "$PROJECT_DIR/.claude/bridge-session" ]; then
-  SESSION_ID=$(cat "$PROJECT_DIR/.claude/bridge-session")
-else
-  exit 0
-fi
+# Resolve this agent session's ID via the shared resolver; nothing to do if none
+SESSION_ID=$(BRIDGE_DIR="$BRIDGE_DIR" PROJECT_DIR="$PROJECT_DIR" \
+  bash "$SCRIPT_DIR/get-session-id.sh" 2>/dev/null || echo "")
+[ -n "$SESSION_ID" ] || exit 0
 
 MANIFEST="$BRIDGE_DIR/sessions/$SESSION_ID/manifest.json"
 [ -f "$MANIFEST" ] || exit 0

@@ -15,8 +15,8 @@ NOW_EPOCH=$(date -u +%s)
 STALE_SECONDS=300  # 5 minutes
 FOUND=0
 
-printf "%-10s %-20s %-8s %s\n" "SESSION" "PROJECT" "STATUS" "PATH"
-printf "%-10s %-20s %-8s %s\n" "-------" "-------" "------" "----"
+printf "%-10s %-20s %-14s %-8s %s\n" "SESSION" "PROJECT" "LABEL" "STATUS" "PATH"
+printf "%-10s %-20s %-14s %-8s %s\n" "-------" "-------" "-----" "------" "----"
 
 for MANIFEST in "$SESSIONS_DIR"/*/manifest.json; do
   [ -f "$MANIFEST" ] || continue
@@ -24,6 +24,7 @@ for MANIFEST in "$SESSIONS_DIR"/*/manifest.json; do
   SID=$(jq -r '.sessionId' "$MANIFEST")
   PNAME=$(jq -r '.projectName' "$MANIFEST")
   PPATH=$(jq -r '.projectPath' "$MANIFEST")
+  LABEL=$(jq -r '.label // ""' "$MANIFEST")
   HB=$(jq -r '.lastHeartbeat' "$MANIFEST")
 
   # Calculate staleness (macOS date parsing — use -u to match UTC timestamps)
@@ -36,7 +37,7 @@ for MANIFEST in "$SESSIONS_DIR"/*/manifest.json; do
     STATUS="active"
   fi
 
-  printf "%-10s %-20s %-8s %s\n" "$SID" "$PNAME" "$STATUS" "$PPATH"
+  printf "%-10s %-20s %-14s %-8s %s\n" "$SID" "$PNAME" "$LABEL" "$STATUS" "$PPATH"
   FOUND=$((FOUND + 1))
 done
 

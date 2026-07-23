@@ -48,9 +48,9 @@ else
   echo "  FAIL: heartbeat not updated (still $OLD_HB)"; FAIL=$((FAIL + 1))
 fi
 
-# --- Test 2: Heartbeat via bridge-session file fallback ---
+# --- Test 2: Heartbeat via per-session pointer fallback ---
 echo ""
-echo "Test 2: Heartbeat via bridge-session file fallback updates lastHeartbeat"
+echo "Test 2: Heartbeat via per-session pointer fallback updates lastHeartbeat"
 
 # Set heartbeat to old value again
 OLD_HB="2020-01-01T00:00:00Z"
@@ -61,12 +61,12 @@ mv "$TMP" "$MANIFEST"
 CURRENT_HB=$(jq -r '.lastHeartbeat' "$MANIFEST")
 assert_eq "heartbeat set to old value again" "$OLD_HB" "$CURRENT_HB"
 
-# Run heartbeat without BRIDGE_SESSION_ID, relying on bridge-session file
+# Run heartbeat without BRIDGE_SESSION_ID, relying on the per-session pointer
 BRIDGE_DIR="$BRIDGE_DIR" PROJECT_DIR="$PROJECT_A" bash "$HEARTBEAT"
 
 UPDATED_HB=$(jq -r '.lastHeartbeat' "$MANIFEST")
 if [ "$UPDATED_HB" != "$OLD_HB" ]; then
-  echo "  PASS: heartbeat updated via bridge-session file"; PASS=$((PASS + 1))
+  echo "  PASS: heartbeat updated via per-session pointer"; PASS=$((PASS + 1))
 else
   echo "  FAIL: heartbeat not updated via fallback (still $OLD_HB)"; FAIL=$((FAIL + 1))
 fi

@@ -19,13 +19,16 @@ When the user asks you to communicate with a peer — whether via `/bridge ask`,
    ```
    Then find connected peers:
    ```bash
-   find ~/.claude/session-bridge/sessions/$MY_SESSION/inbox -name "*.json" -exec jq -r 'select(.type == "ping") | "\(.metadata.fromProject) (\(.from))"' {} \; 2>/dev/null | sort -u
+   find ~/.claude/session-bridge/sessions/$MY_SESSION/inbox -name "*.json" -exec jq -r 'select(.type == "ping") | "\(.metadata.fromProject) [\(.metadata.fromLabel // "")] (\(.from))"' {} \; 2>/dev/null | sort -u
    ```
+   `metadata.fromLabel` (git branch by default, or the peer's `--as` value) is available for disambiguation when several peers share a project name.
    If no connected peers found but the user specified a peer by name or session ID, connect first:
    ```bash
    BRIDGE_SESSION_ID=$MY_SESSION bash "${CLAUDE_PLUGIN_ROOT}/scripts/connect-peer.sh" "<peer-id>"
    ```
-2. If multiple peers, pick the most relevant one (by project name) or ask the user.
+2. If multiple peers, pick the most relevant one by label first (git branch by default, or the peer's `--as` role) — several sessions may share one project name — then by project name. Ask the user if still ambiguous.
+
+   Multiple agent sessions can run in the same repo; each registers independently and is distinguished by its label and session ID.
 3. Send the query and capture the message ID:
    ```bash
    MSG_ID=$(BRIDGE_SESSION_ID=$MY_SESSION bash "${CLAUDE_PLUGIN_ROOT}/scripts/send-message.sh" <peer-id> query "Your question here")
@@ -103,7 +106,7 @@ BRIDGE_SESSION_ID=<TO_ID> bash "${CLAUDE_PLUGIN_ROOT}/scripts/send-message.sh" <
 - **Outside listen mode, use `get-session-id.sh`** to get your session ID reliably.
 - **Never use `$(cat .claude/bridge-session)` directly** — it's a relative path that breaks when the working directory changes.
 - **Include real code in responses** — read actual files and paste relevant sections. Don't just describe changes in prose.
-- **Route to the right peer** when connected to multiple. Use project names to decide relevance.
+- **Route to the right peer** when connected to multiple. Use peer labels (git branch by default, or the `--as` role) to distinguish sessions — including multiple sessions in the same repo — then project name. Ask the user if still ambiguous.
 - **Act on responses.** When you get a response from a peer, don't just display it — use it to continue the user's task.
 - **Handle follow-up questions.** If a peer's response asks you a question back, answer it and re-query. Continue the back-and-forth until you get a final answer.
 - **Query proactively on upgrades.** Don't wait for compile errors — ask the peer immediately when the user mentions upgrading a dependency.

@@ -30,14 +30,21 @@ Register this session as a bridge peer.
    ```bash
    bash "${CLAUDE_PLUGIN_ROOT}/scripts/register.sh"
    ```
-2. Capture the session ID from stdout.
+   Optionally pass a label to identify this session to peers (defaults to the current git branch):
+   ```bash
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/register.sh" --as frontend
+   ```
+2. Capture the session ID from stdout. The label is the `--as` value if given, otherwise the current git branch (empty outside a git repo).
 3. Display to the user:
    ```
    Bridge active!
    Session ID: <session-id>
+   Label: <label>
    Share this ID with other Claude sessions to connect: /bridge connect <session-id>
    Use /bridge listen to start receiving and answering peer queries.
    ```
+
+**Multiple sessions in the same repo are supported.** Each agent session registers independently and is distinguished by its label (git branch by default, or `--as <label>`). Use distinct labels — e.g. `/bridge start --as frontend` and `/bridge start --as backend` — so peers can tell same-repo sessions apart.
 
 ### `connect <session-id>`
 
@@ -87,7 +94,7 @@ The loop:
    bash "${CLAUDE_PLUGIN_ROOT}/scripts/bridge-listen.sh" "$MY_SESSION"
    ```
 3. When a message arrives, parse the output:
-   - Lines before `---` are metadata (MESSAGE_ID, FROM_ID, TO_ID, FROM_PROJECT, TYPE, IN_REPLY_TO)
+   - Lines before `---` are metadata (MESSAGE_ID, FROM_ID, TO_ID, FROM_PROJECT, FROM_LABEL, TYPE, IN_REPLY_TO)
    - Lines after `---` are the message content
 
 4. Handle by message type. **Use `TO_ID` from the message metadata as your session ID** when sending responses. This is always correct regardless of working directory.
@@ -123,7 +130,7 @@ Send a query to a connected peer and wait for the response.
    ```bash
    find ~/.claude/session-bridge/sessions/$MY_SESSION/inbox -name "*.json" -exec jq -r 'select(.type == "ping") | .from' {} \; 2>/dev/null | sort -u
    ```
-3. If multiple peers, ask which one to query.
+3. If multiple peers, pick the most relevant one by label first, then project name (several sessions may share one project). Ask the user if still ambiguous.
 4. Send the query and capture the message ID:
    ```bash
    MSG_ID=$(BRIDGE_SESSION_ID=$MY_SESSION bash "${CLAUDE_PLUGIN_ROOT}/scripts/send-message.sh" "<peer-id>" query "<question>")
@@ -144,7 +151,7 @@ List all active bridge sessions on this machine.
    ```bash
    bash "${CLAUDE_PLUGIN_ROOT}/scripts/list-peers.sh"
    ```
-2. Display the formatted table.
+2. Display the formatted table — its LABEL column shows each session's label (git branch by default, or the `--as` value), which together with the session ID distinguishes multiple sessions in the same repo.
 3. To highlight which one is "you", run:
    ```bash
    bash "${CLAUDE_PLUGIN_ROOT}/scripts/get-session-id.sh"
@@ -159,7 +166,7 @@ Show current bridge state.
    MY_SESSION=$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/get-session-id.sh")
    ```
    If it fails, say "Bridge is not active. Run `/bridge start` to begin."
-2. Display the session ID.
+2. Display the session ID and label (shown in the manifest and in `/bridge peers`).
 3. List connected peers (from ping messages in inbox).
 4. Count pending (unread) messages in inbox.
 5. Count messages in outbox (sent).
@@ -167,10 +174,11 @@ Show current bridge state.
    ```
    Bridge Status
    Session ID: abc123
+   Label: frontend
    Project: my-app
 
    Connected Peers:
-   - my-library (def456) - active
+   - backend (def456) - active
 
    Inbox: 2 pending messages
    Outbox: 5 messages sent
@@ -178,7 +186,7 @@ Show current bridge state.
 
 ### `stop`
 
-Unregister and clean up.
+Unregister and clean up. This only removes THIS session's own bridge state — other sessions in the same repo (or elsewhere) keep running.
 
 1. Run:
    ```bash
@@ -191,11 +199,11 @@ Unregister and clean up.
 If no argument is given, show a brief help:
 ```
 Bridge commands:
-  /bridge start              - Register this session
+  /bridge start [--as label] - Register this session (label defaults to git branch)
   /bridge connect <id>       - Connect to a peer session
   /bridge listen             - Listen and answer peer queries (blocks)
   /bridge ask <question>     - Send a question to a peer
-  /bridge peers              - List active sessions
+  /bridge peers              - List active sessions (with labels)
   /bridge status             - Show bridge state
   /bridge stop               - Disconnect and clean up
 ```

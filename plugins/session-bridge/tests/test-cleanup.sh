@@ -10,6 +10,9 @@ REGISTER="$PLUGIN_DIR/scripts/register.sh"
 SEND_MSG="$PLUGIN_DIR/scripts/send-message.sh"
 CLEANUP="$PLUGIN_DIR/scripts/cleanup.sh"
 
+# Session key the scripts will compute for this process tree (BRIDGE_SESSION_KEY unset)
+KEY=$(bash "$PLUGIN_DIR/scripts/get-session-key.sh")
+
 TEST_TMPDIR=$(mktemp -d)
 trap 'rm -rf "$TEST_TMPDIR"' EXIT
 
@@ -42,13 +45,13 @@ else
   echo "  FAIL: session dir still exists"; FAIL=$((FAIL + 1))
 fi
 
-# --- Test 2: bridge-session pointer removed ---
+# --- Test 2: per-session pointer removed ---
 echo ""
-echo "Test 2: bridge-session file removed"
-if [ ! -f "$PROJECT_A/.claude/bridge-session" ]; then
-  echo "  PASS: bridge-session file removed"; PASS=$((PASS + 1))
+echo "Test 2: per-session pointer removed"
+if [ ! -f "$PROJECT_A/.claude/bridge-sessions/$KEY" ]; then
+  echo "  PASS: per-session pointer removed"; PASS=$((PASS + 1))
 else
-  echo "  FAIL: bridge-session file still exists"; FAIL=$((FAIL + 1))
+  echo "  FAIL: per-session pointer still exists"; FAIL=$((FAIL + 1))
 fi
 
 # --- Test 3: ALL peers notified with session-ended ---
@@ -100,16 +103,16 @@ else
   echo "  FAIL: stale session still exists"; FAIL=$((FAIL + 1))
 fi
 
-# --- Test 5: No-op when bridge-session file doesn't exist ---
+# --- Test 5: No-op when no session pointer exists ---
 echo ""
-echo "Test 5: Cleanup is no-op when no bridge-session file"
+echo "Test 5: Cleanup is no-op when no per-session pointer"
 PROJECT_E="$TEST_TMPDIR/project-e"
 mkdir -p "$PROJECT_E"
-# Don't register — no bridge-session file
+# Don't register — no pointer file
 if BRIDGE_DIR="$BRIDGE_DIR" PROJECT_DIR="$PROJECT_E" bash "$CLEANUP" 2>/dev/null; then
-  echo "  PASS: cleanup exits cleanly with no bridge-session"; PASS=$((PASS + 1))
+  echo "  PASS: cleanup exits cleanly with no session pointer"; PASS=$((PASS + 1))
 else
-  echo "  FAIL: cleanup errored without bridge-session"; FAIL=$((FAIL + 1))
+  echo "  FAIL: cleanup errored without session pointer"; FAIL=$((FAIL + 1))
 fi
 
 # --- Test 6: Active sessions not cleaned by stale cleanup ---

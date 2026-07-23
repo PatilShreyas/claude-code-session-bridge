@@ -84,10 +84,28 @@ else
   echo "  FAIL: both returned same session"; FAIL=$((FAIL + 1))
 fi
 
-# --- Test 7: Prefers direct bridge-session file when in project root ---
+# --- Test 7: Prefers per-session pointer when in project root ---
 echo ""
-echo "Test 7: Fast path — uses bridge-session file directly when available"
+echo "Test 7: Fast path — uses per-session pointer directly when available"
 FOUND=$(BRIDGE_DIR="$BRIDGE_DIR" PROJECT_DIR="$PROJECT_DIR" bash "$GET_ID")
 assert_eq "fast path works" "$SESSION_ID" "$FOUND"
+
+# --- Test 8: Two sessions in the same repo resolve by session key ---
+echo ""
+echo "Test 8: Two sessions in same repo — each key resolves its own session"
+SHARED="$TEST_TMPDIR/shared-repo"
+mkdir -p "$SHARED/src"
+ID_A=$(BRIDGE_DIR="$BRIDGE_DIR" BRIDGE_SESSION_KEY=agent-a PROJECT_DIR="$SHARED" bash "$REGISTER")
+ID_B=$(BRIDGE_DIR="$BRIDGE_DIR" BRIDGE_SESSION_KEY=agent-b PROJECT_DIR="$SHARED" bash "$REGISTER")
+
+FOUND_KEY_A=$(BRIDGE_DIR="$BRIDGE_DIR" BRIDGE_SESSION_KEY=agent-a PROJECT_DIR="$SHARED" bash "$GET_ID")
+FOUND_KEY_B=$(BRIDGE_DIR="$BRIDGE_DIR" BRIDGE_SESSION_KEY=agent-b PROJECT_DIR="$SHARED" bash "$GET_ID")
+assert_eq "agent-a resolves from project root" "$ID_A" "$FOUND_KEY_A"
+assert_eq "agent-b resolves from project root" "$ID_B" "$FOUND_KEY_B"
+
+FOUND_KEY_A_SUB=$(BRIDGE_DIR="$BRIDGE_DIR" BRIDGE_SESSION_KEY=agent-a PROJECT_DIR="$SHARED/src" bash "$GET_ID")
+FOUND_KEY_B_SUB=$(BRIDGE_DIR="$BRIDGE_DIR" BRIDGE_SESSION_KEY=agent-b PROJECT_DIR="$SHARED/src" bash "$GET_ID")
+assert_eq "agent-a resolves from subdirectory" "$ID_A" "$FOUND_KEY_A_SUB"
+assert_eq "agent-b resolves from subdirectory" "$ID_B" "$FOUND_KEY_B_SUB"
 
 print_results
