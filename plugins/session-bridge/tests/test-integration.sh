@@ -14,6 +14,9 @@ RECEIVE="$PLUGIN_DIR/scripts/bridge-receive.sh"
 CLEANUP="$PLUGIN_DIR/scripts/cleanup.sh"
 LIST_PEERS="$PLUGIN_DIR/scripts/list-peers.sh"
 
+# Session key the scripts will compute for this process tree (BRIDGE_SESSION_KEY unset)
+KEY=$(bash "$PLUGIN_DIR/scripts/get-session-key.sh")
+
 TEST_TMPDIR=$(mktemp -d)
 trap 'rm -rf "$TEST_TMPDIR"' EXIT
 
@@ -104,7 +107,7 @@ echo "Scenario 4: Cleanup notifies peers and removes session"
 
 BRIDGE_DIR="$BRIDGE_DIR" PROJECT_DIR="$PROJECT_A" bash "$CLEANUP"
 assert_eq "session A dir removed" "false" "$([ -d "$BRIDGE_DIR/sessions/$SESSION_A" ] && echo true || echo false)"
-assert_eq "bridge-session pointer removed" "false" "$([ -f "$PROJECT_A/.claude/bridge-session" ] && echo true || echo false)"
+assert_eq "per-session pointer removed" "false" "$([ -f "$PROJECT_A/.claude/bridge-sessions/$KEY" ] && echo true || echo false)"
 
 FOUND_ENDED=false
 for F in "$BRIDGE_DIR/sessions/$SESSION_B/inbox"/msg-*.json; do
@@ -133,7 +136,7 @@ echo "Scenario 6: Re-register after cleanup creates new session"
 NEW_SESSION=$(BRIDGE_DIR="$BRIDGE_DIR" PROJECT_DIR="$PROJECT_A" bash "$REGISTER")
 assert_eq "new session is different" "true" "$([ "$NEW_SESSION" != "$SESSION_A" ] && echo true || echo false)"
 assert_dir_exists "new session inbox exists" "$BRIDGE_DIR/sessions/$NEW_SESSION/inbox"
-assert_file_exists "new bridge-session file" "$PROJECT_A/.claude/bridge-session"
-assert_eq "bridge-session points to new ID" "$NEW_SESSION" "$(cat "$PROJECT_A/.claude/bridge-session")"
+assert_file_exists "new per-session pointer" "$PROJECT_A/.claude/bridge-sessions/$KEY"
+assert_eq "pointer points to new ID" "$NEW_SESSION" "$(cat "$PROJECT_A/.claude/bridge-sessions/$KEY")"
 
 print_results

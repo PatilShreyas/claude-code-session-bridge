@@ -93,7 +93,7 @@ That's it. The Library agent responds with its **full session context** — it k
 
 | Command | Description |
 |---------|-------------|
-| `/bridge start` | Register this session as a bridge peer |
+| `/bridge start [--as <label>]` | Register this session as a bridge peer (label defaults to the git branch) |
 | `/bridge connect <id>` | Connect to a peer session (auto-starts if needed) |
 | `/bridge listen` | Enter listening mode — answer peer queries continuously |
 | `/bridge ask <question>` | Send a question and wait for the response |
@@ -119,6 +119,10 @@ The key innovation: `/bridge listen` puts the agent into a **continuous listenin
 - Atomic file writes — temp file + `mv` prevents partial reads
 - UUID message IDs — no collision risk
 - Connection via ping handshake — peers never mutate each other's manifests
+
+### Multiple sessions in the same repo
+
+Session identity is keyed by the agent session (a per-session pointer derived from the agent process), not the project directory — so two Claude Code sessions in the same repo each get their own bridge identity. They're distinguished by their **label** (the git branch by default, or `--as <label>`) and session ID in `/bridge peers`. `/bridge stop` only cleans up the calling session's own state.
 
 ---
 
@@ -191,11 +195,11 @@ Consumer user: "Ask the backend team what the new API response format looks like
 
 ```
 > /bridge peers
-SESSION    PROJECT              STATUS   PATH
--------    -------              ------   ----
-a1b2c3     auth-sdk             active   ~/projects/auth-sdk
-d4e5f6     payments-service     active   ~/projects/payments
-g7h8i9     my-app               active   ~/projects/my-app  (you)
+SESSION    PROJECT              LABEL          STATUS   PATH
+-------    -------              -----          ------   ----
+a1b2c3     auth-sdk             main           active   ~/projects/auth-sdk
+d4e5f6     payments-service     main           active   ~/projects/payments
+g7h8i9     my-app               feature/login  active   ~/projects/my-app  (you)
 
 > /bridge ask "What config format does the payments service expect?"
   Routes to payments-service peer automatically based on question context
@@ -261,6 +265,8 @@ plugins/session-bridge/
 │       └── SKILL.md             # Teaches agent the bridge protocol
 ├── scripts/
 │   ├── register.sh              # Create session directory and manifest
+│   ├── get-session-id.sh        # Resolve this session's ID
+│   ├── get-session-key.sh       # Resolve stable per-agent-session key
 │   ├── send-message.sh          # Send message to peer's inbox
 │   ├── check-inbox.sh           # Scan inboxes for pending messages
 │   ├── list-peers.sh            # List active sessions

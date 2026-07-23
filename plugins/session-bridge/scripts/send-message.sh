@@ -25,11 +25,13 @@ fi
 MSG_ID="msg-$(set +o pipefail; LC_ALL=C tr -dc 'a-z0-9' < /dev/urandom | head -c 12)"
 NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-# Read sender project name from manifest
+# Read sender project name and label from manifest
 SENDER_PROJECT="unknown"
+SENDER_LABEL=""
 SENDER_MANIFEST="$BRIDGE_DIR/sessions/$SENDER_ID/manifest.json"
 if [ -f "$SENDER_MANIFEST" ]; then
   SENDER_PROJECT=$(jq -r '.projectName // "unknown"' "$SENDER_MANIFEST")
+  SENDER_LABEL=$(jq -r '.label // ""' "$SENDER_MANIFEST")
 fi
 
 # Format inReplyTo as JSON (null or quoted string)
@@ -48,6 +50,7 @@ MSG_JSON=$(jq -n \
   --arg ts "$NOW" \
   --arg content "$CONTENT" \
   --arg fromProject "$SENDER_PROJECT" \
+  --arg fromLabel "$SENDER_LABEL" \
   --argjson inReplyTo "$IN_REPLY_TO_JSON" \
   '{
     id: $id,
@@ -60,7 +63,8 @@ MSG_JSON=$(jq -n \
     inReplyTo: $inReplyTo,
     metadata: {
       urgency: "normal",
-      fromProject: $fromProject
+      fromProject: $fromProject,
+      fromLabel: $fromLabel
     }
   }')
 
